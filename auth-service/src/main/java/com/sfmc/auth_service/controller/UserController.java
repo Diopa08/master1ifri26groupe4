@@ -1,5 +1,7 @@
 package com.sfmc.auth_service.controller;
 
+import java.util.List;
+
 import org.springframework.web.bind.annotation.*;
 
 import com.sfmc.auth_service.entity.User;
@@ -22,6 +24,11 @@ public class UserController {
             @RequestBody User user) {
 
         return userService.saveUser(user);
+    }
+    
+    @GetMapping
+    public List<User> getAllUsers() {
+        return userService.getAllUsers();
     }
 
 }
