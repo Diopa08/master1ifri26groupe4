@@ -23,6 +23,22 @@ spring:
           uri: lb://order-service
           predicates:
             - Path=/orders/**
+            
+        - id: auth-service-auth
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/api/auth/**
+
+        - id: auth-service-users
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/users/**
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8081/oauth2/jwks
 
 eureka:
   client:

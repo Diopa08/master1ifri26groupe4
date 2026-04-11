@@ -7,11 +7,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import java.util.List;
+
 import java.io.IOException;
+
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
@@ -28,36 +26,36 @@ public class JwtFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        String path = request.getServletPath();
 
-        // Pas de token → on laisse continuer (Spring bloquera si route protégée)
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        // ✅ Ignorer ces routes
+        if (path.startsWith("/api/auth")
+                || path.startsWith("/users")) {
+
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = authHeader.substring(7);
+        String authHeader =
+                request.getHeader("Authorization");
 
-        if (!jwtService.validateToken(token)) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        if (authHeader == null
+                || !authHeader.startsWith("Bearer ")) {
+
+            response.setStatus(
+                    HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
-        // ✅ CORRECTION : alimenter le SecurityContext avec l'identité extraite
-        String email = jwtService.extractEmail(token);
+        String token =
+                authHeader.substring(7);
 
-        UsernamePasswordAuthenticationToken authentication =
-            new UsernamePasswordAuthenticationToken(
-                email,
-                null,
-                List.of() // pas de rôles pour l'instant, à compléter plus tard
-            );
+        if (!jwtService.validateToken(token)) {
 
-        authentication.setDetails(
-            new WebAuthenticationDetailsSource().buildDetails(request)
-        );
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+            response.setStatus(
+                    HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
 
         filterChain.doFilter(request, response);
     }

@@ -4,14 +4,14 @@ import org.springframework.web.bind.annotation.*;
 
 import com.sfmc.auth_service.dto.LoginRequest;
 import com.sfmc.auth_service.dto.AuthResponse;
-import com.sfmc.auth_service.entity.User;
 import com.sfmc.auth_service.repository.UserRepository;
 import com.sfmc.auth_service.security.JwtService;
+import com.sfmc.auth_service.entity.User;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
     private final UserRepository userRepository;

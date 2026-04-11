@@ -1,6 +1,7 @@
 package com.sfmc.auth_service.entity;
 
 import jakarta.persistence.*;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -12,17 +13,32 @@ public class User {
 
     private String username;
 
-    private String email;
-
     private String password;
 
-    public User() {
-    }
+    private String email;
 
-    public User(String username, String email, String password) {
+    // Relation avec Role
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "user_roles",
+
+        joinColumns =
+            @JoinColumn(name = "user_id"),
+
+        inverseJoinColumns =
+            @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles;
+
+    public User() {}
+
+    public User(String username,
+                String password,
+                String email) {
+
         this.username = username;
-        this.email = email;
         this.password = password;
+        this.email = email;
     }
 
     public Long getId() {
@@ -37,6 +53,14 @@ public class User {
         this.username = username;
     }
 
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
     public String getEmail() {
         return email;
     }
@@ -45,11 +69,11 @@ public class User {
         this.email = email;
     }
 
-    public String getPassword() {
-        return password;
+    public Set<Role> getRoles() {
+        return roles;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
     }
 }
