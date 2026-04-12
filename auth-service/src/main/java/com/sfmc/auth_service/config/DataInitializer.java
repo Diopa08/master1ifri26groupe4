@@ -1,54 +1,28 @@
 package com.sfmc.auth_service.config;
 
-import java.util.Set;
+import com.sfmc.auth_service.entity.Role;
+import com.sfmc.auth_service.repository.RoleRepository;
 
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 
-import com.sfmc.auth_service.entity.Role;
-import com.sfmc.auth_service.entity.User;
-import com.sfmc.auth_service.repository.RoleRepository;
-import com.sfmc.auth_service.repository.UserRepository;
+@Component
+public class DataInitializer implements CommandLineRunner {
 
-@Configuration
-public class DataInitializer {
+    private final RoleRepository roleRepository;
 
-	@Bean
-	CommandLineRunner initData(
-	        RoleRepository roleRepository,
-	        UserRepository userRepository,
-	        PasswordEncoder passwordEncoder
-	) {
+    public DataInitializer(RoleRepository roleRepository) {
+        this.roleRepository = roleRepository;
+    }
 
-	    return args -> {
-
-	        // Création des rôles
-	        if (roleRepository.findByName("ADMIN").isEmpty()) {
-
-	            Role adminRole = roleRepository.save(new Role("ADMIN"));
-	            Role clientRole = roleRepository.save(new Role("CLIENT"));
-	            Role operatorRole = roleRepository.save(new Role("OPERATOR"));
-
-	            System.out.println("Roles created");
-	        }
-
-	        // Création admin
-	        if (userRepository.findByUsername("admin").isEmpty()) {
-
-	            Role adminRole = roleRepository.findByName("ADMIN").orElseThrow();
-
-	            User admin = new User();
-	            admin.setUsername("admin");
-	            admin.setPassword(passwordEncoder.encode("admin123"));
-	            admin.setEmail("admin@test.com");
-	            admin.setRoles(Set.of(adminRole));
-
-	            userRepository.save(admin);
-
-	            System.out.println("Admin created");
-	        }
-	    };
-}
+    @Override
+    public void run(String... args) {
+        // Créer les rôles s'ils n'existent pas encore
+        for (String roleName : new String[]{"ROLE_USER", "ROLE_ADMIN", "ROLE_OPERATOR"}) {
+            if (roleRepository.findByName(roleName).isEmpty()) {
+                roleRepository.save(new Role(roleName));
+                System.out.println("Rôle créé : " + roleName);
+            }
+        }
+    }
 }

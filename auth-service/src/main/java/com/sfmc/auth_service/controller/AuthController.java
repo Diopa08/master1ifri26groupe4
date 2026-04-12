@@ -1,50 +1,33 @@
 package com.sfmc.auth_service.controller;
 
-import org.springframework.web.bind.annotation.*;
-
 import com.sfmc.auth_service.dto.LoginRequest;
-import com.sfmc.auth_service.dto.AuthResponse;
-import com.sfmc.auth_service.repository.UserRepository;
-import com.sfmc.auth_service.security.JwtService;
-import com.sfmc.auth_service.entity.User;
+import com.sfmc.auth_service.dto.LoginResponse;
+import com.sfmc.auth_service.dto.RegisterRequest;
+import com.sfmc.auth_service.service.AuthService;
 
-import org.springframework.security.crypto.password.PasswordEncoder;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final AuthService authService;
 
-    public AuthController(UserRepository userRepository,
-                          PasswordEncoder passwordEncoder,
-                          JwtService jwtService) {
-
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
+    public AuthController(AuthService authService) {
+        this.authService = authService;
     }
 
     @PostMapping("/login")
-    public AuthResponse login(@RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
+    }
 
-        User user = userRepository
-                .findByEmail(request.getEmail())
-                .orElseThrow();
-
-        if (!passwordEncoder.matches(
-                request.getPassword(),
-                user.getPassword())) {
-
-            throw new RuntimeException("Invalid password");
-        }
-
-        String token = jwtService.generateToken(
-                user.getEmail()
-        );
-
-        return new AuthResponse(token);
+    @PostMapping("/register")
+    public ResponseEntity<Void> register(@RequestBody @Valid RegisterRequest request) {
+        authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }
