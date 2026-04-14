@@ -20,7 +20,13 @@ spring:
           uri: lb://auth-service
           predicates:
             - Path=/api/auth/**
-
+            
+        - id: auth-login-user
+          uri: lb://auth-service
+          predicates:
+            - Path=/users/**
+              
+        
         # ✅ PROTÉGÉ — JWT validé automatiquement
         - id: product-service
           uri: lb://product-service
