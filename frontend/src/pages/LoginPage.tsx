@@ -187,7 +187,7 @@ export default function LoginPage() {
                 En vous inscrivant, vous obtenez un accès client (commandes et facturation).
               </p>
               <button type="submit" disabled={loading}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-2.5 rounded-lg transition flex items-center justify-center gap-2">
+                className="w-full  bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-2.5 rounded-lg transition flex items-center justify-center gap-2">
                 {loading ? <><Loader2 size={18} className="animate-spin" /> Création...</> : 'Créer mon compte'}
               </button>
             </form>
