@@ -73,4 +73,14 @@ public class InventoryController {
     public ResponseEntity<List<StockMovement>> getMovements(@PathVariable Long stockId) {
         return ResponseEntity.ok(inventoryService.getMovements(stockId));
     }
+
+    // Décrémentation de stock par productId — appelé par order-service après validation commande
+    @PutMapping("/decrease")
+    public ResponseEntity<Stock> decreaseStock(
+            @RequestParam Long productId,
+            @RequestParam Long warehouseId,
+            @RequestParam Double quantity,
+            @RequestParam(required = false, defaultValue = "Commande validée") String reason) {
+        return ResponseEntity.ok(inventoryService.decreaseStockByProduct(productId, warehouseId, quantity, reason));
+    }
 }

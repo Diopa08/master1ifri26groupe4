@@ -1,5 +1,6 @@
 package com.sfmc.inventory_service.service;
 
+import com.sfmc.inventory_service.client.NotificationServiceClient;
 import com.sfmc.inventory_service.dto.StockCheckResponse;
 import com.sfmc.inventory_service.dto.StockRequest;
 import com.sfmc.inventory_service.dto.StockUpdateRequest;
@@ -21,11 +22,14 @@ public class InventoryService {
 
     private final StockRepository stockRepository;
     private final StockMovementRepository movementRepository;
+    private final NotificationServiceClient notificationClient;
 
     public InventoryService(StockRepository stockRepository,
-                            StockMovementRepository movementRepository) {
+                            StockMovementRepository movementRepository,
+                            NotificationServiceClient notificationClient) {
         this.stockRepository = stockRepository;
         this.movementRepository = movementRepository;
+        this.notificationClient = notificationClient;
     }
 
     // ─── Lecture ───────────────────────────────────────────────────────────────
@@ -97,6 +101,16 @@ public class InventoryService {
         );
         movementRepository.save(movement);
 
+        // Alerte si le stock passe sous le seuil critique
+        if (stock.getQuantity() <= stock.getThreshold()) {
+            notificationClient.sendStockAlert(
+                stock.getProductId(),
+                stock.getWarehouseId(),
+                stock.getQuantity(),
+                stock.getThreshold()
+            );
+        }
+
         return stock;
     }
 
@@ -125,6 +139,22 @@ public class InventoryService {
         }
 
         return new StockCheckResponse(available, stock.getQuantity(), thresholdAlert, message);
+    }
+
+    // ─── Décrémentation par productId (appelé par order-service) ──────────────
+
+    @Transactional
+    public Stock decreaseStockByProduct(Long productId, Long warehouseId, Double quantity, String reason) {
+        Stock stock = stockRepository.findByProductIdAndWarehouseId(productId, warehouseId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Aucun stock pour produit " + productId + " dans entrepôt " + warehouseId));
+
+        StockUpdateRequest req = new StockUpdateRequest();
+        req.setType(MovementType.OUT);
+        req.setQuantity(quantity.doubleValue());
+        req.setReason(reason);
+
+        return updateStock(stock.getId(), req);
     }
 
     // ─── Historique des mouvements ──────────────────────────────────────────────

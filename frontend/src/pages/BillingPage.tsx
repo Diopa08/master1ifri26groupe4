@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getInvoices, recordPayment, cancelInvoice } from '../api/billing'
+import { getInvoices, getMyInvoices, recordPayment, cancelInvoice } from '../api/billing'
+import { useAuth } from '../contexts/AuthContext'
 import type { Invoice, RecordPaymentRequest } from '../types'
 import { CreditCard, XCircle, X, Loader2, Eye } from 'lucide-react'
 
@@ -17,18 +18,21 @@ const payMethods = ['CASH', 'BANK_TRANSFER', 'CHECK', 'MOBILE_MONEY'] as const
 const payLabels: Record<string, string> = { CASH: 'Espèces', BANK_TRANSFER: 'Virement', CHECK: 'Chèque', MOBILE_MONEY: 'Mobile Money' }
 
 export default function BillingPage() {
+  const { isUser } = useAuth()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [detail, setDetail] = useState<Invoice | null>(null)
   const [payModal, setPayModal] = useState<Invoice | null>(null)
-  const [payForm, setPayForm] = useState<RecordPaymentRequest>({ amount: 0, paymentMethod: 'CASH', notes: '' })
+  const [payForm, setPayForm] = useState<RecordPaymentRequest>({ amountPaid: 0, paymentMethod: 'CASH', notes: '' })
   const [saving, setSaving] = useState(false)
 
   const load = () => {
     setLoading(true)
-    getInvoices().then(setInvoices).catch(() => setInvoices([])).finally(() => setLoading(false))
+    // ROLE_USER voit uniquement ses factures
+    const fetcher = isUser() ? getMyInvoices : getInvoices
+    fetcher().then(data => setInvoices(Array.isArray(data) ? data : [])).catch(() => setInvoices([])).finally(() => setLoading(false))
   }
-  useEffect(load, [])
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePay = async () => {
     if (!payModal) return
@@ -45,7 +49,7 @@ export default function BillingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Facturation</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{isUser() ? 'Mes factures' : 'Facturation'}</h1>
         <p className="text-sm text-gray-500 mt-1">{invoices.length} facture(s)</p>
       </div>
 
@@ -81,7 +85,7 @@ export default function BillingPage() {
                       <div className="flex gap-1">
                         <button onClick={() => setDetail(inv)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded" title="Détails"><Eye size={15} /></button>
                         {['UNPAID', 'PARTIAL', 'OVERDUE'].includes(inv.status) && (
-                          <button onClick={() => { setPayModal(inv); setPayForm({ amount: inv.totalAmount, paymentMethod: 'CASH', notes: '' }) }}
+                          <button onClick={() => { setPayModal(inv); setPayForm({ amountPaid: inv.totalAmount, paymentMethod: 'CASH', notes: '' }) }}
                             className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded" title="Payer">
                             <CreditCard size={15} />
                           </button>
@@ -112,7 +116,7 @@ export default function BillingPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Montant (FCFA)</label>
-                <input type="number" value={payForm.amount} onChange={e => setPayForm({ ...payForm, amount: +e.target.value })}
+                <input type="number" value={payForm.amountPaid} onChange={e => setPayForm({ ...payForm, amountPaid: +e.target.value })}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>

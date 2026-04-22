@@ -2,20 +2,23 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import {
   LayoutDashboard, Package, ShoppingCart,
-  Warehouse, FileText, LogOut, Menu, X, Factory, Users, Bell
+  Warehouse, FileText, LogOut, Menu, X, Factory, Users, Bell, Store
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { getUnreadCount } from '../api/notifications'
 
 const allNav = [
   { to: '/',              label: 'Tableau de bord', icon: LayoutDashboard, roles: ['ROLE_ADMIN', 'ROLE_OPERATOR', 'ROLE_USER'] },
+  { to: '/shop',          label: 'Catalogue',        icon: Store,           roles: ['ROLE_USER'] },
   { to: '/products',      label: 'Produits',         icon: Package,         roles: ['ROLE_ADMIN', 'ROLE_OPERATOR'] },
-  { to: '/inventory',     label: 'Inventaire',        icon: Warehouse,       roles: ['ROLE_ADMIN', 'ROLE_OPERATOR'] },
-  { to: '/orders',        label: 'Commandes',         icon: ShoppingCart,    roles: ['ROLE_ADMIN', 'ROLE_OPERATOR', 'ROLE_USER'] },
-  { to: '/production',    label: 'Production',        icon: Factory,         roles: ['ROLE_ADMIN', 'ROLE_OPERATOR'] },
-  { to: '/billing',       label: 'Facturation',       icon: FileText,        roles: ['ROLE_ADMIN', 'ROLE_USER'] },
-  { to: '/notifications', label: 'Notifications',     icon: Bell,            roles: ['ROLE_ADMIN', 'ROLE_OPERATOR'] },
-  { to: '/users',         label: 'Utilisateurs',      icon: Users,           roles: ['ROLE_ADMIN'] },
+  { to: '/inventory',     label: 'Inventaire',       icon: Warehouse,       roles: ['ROLE_ADMIN', 'ROLE_OPERATOR'] },
+  { to: '/orders',        label: 'Mes commandes',    icon: ShoppingCart,    roles: ['ROLE_USER'] },
+  { to: '/orders',        label: 'Commandes',        icon: ShoppingCart,    roles: ['ROLE_ADMIN', 'ROLE_OPERATOR'] },
+  { to: '/production',    label: 'Production',       icon: Factory,         roles: ['ROLE_ADMIN', 'ROLE_OPERATOR'] },
+  { to: '/billing',       label: 'Mes factures',     icon: FileText,        roles: ['ROLE_USER'] },
+  { to: '/billing',       label: 'Facturation',      icon: FileText,        roles: ['ROLE_ADMIN'] },
+  { to: '/notifications', label: 'Notifications',    icon: Bell,            roles: ['ROLE_ADMIN', 'ROLE_OPERATOR'] },
+  { to: '/users',         label: 'Utilisateurs',     icon: Users,           roles: ['ROLE_ADMIN'] },
 ]
 
 const roleBadge: Record<string, { label: string; color: string }> = {

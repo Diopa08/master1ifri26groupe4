@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { getOrders, createOrder, validateOrder, cancelOrder } from '../api/orders'
+import { getOrders, getMyOrders, createOrder, validateOrder, cancelOrder, createDelivery, confirmDelivery } from '../api/orders'
 import { getProducts } from '../api/products'
 import { useAuth } from '../contexts/AuthContext'
 import type { Order, CreateOrderRequest } from '../types'
 import type { Product } from '../types'
-import { Plus, CheckCircle, XCircle, X, Loader2, Eye, ShoppingCart, Trash2 } from 'lucide-react'
+import { Plus, CheckCircle, XCircle, X, Loader2, Eye, ShoppingCart, Trash2, Truck } from 'lucide-react'
 
 const statusColors: Record<string, string> = {
   PENDING:       'bg-yellow-100 text-yellow-800',
@@ -16,7 +16,7 @@ const statusColors: Record<string, string> = {
 }
 const statusLabels: Record<string, string> = {
   PENDING: 'En attente', VALIDATED: 'Validée', IN_PRODUCTION: 'En production',
-  SHIPPED: 'Expédiée', DELIVERED: 'Livrée', CANCELLED: 'Annulée',
+  SHIPPED: 'En livraison', DELIVERED: 'Livrée', CANCELLED: 'Annulée',
 }
 
 interface CartItem {
@@ -47,7 +47,11 @@ export default function OrdersPage() {
 
   const load = async () => {
     setLoading(true)
-    try { setOrders(await getOrders() || []) }
+    try {
+      // ROLE_USER → uniquement ses propres commandes (sécurité côté backend aussi)
+      const fetcher = canManage ? getOrders : getMyOrders
+      setOrders(await fetcher() || [])
+    }
     catch { setOrders([]) }
     finally { setLoading(false) }
   }
@@ -84,7 +88,6 @@ export default function OrdersPage() {
     setSaving(true)
 
     const req: CreateOrderRequest = {
-      clientId: user?.email ? 1 : 1, // Le backend utilisera l'identité JWT
       shippingAddress,
       notes,
       items: cart.map(c => ({
@@ -113,8 +116,33 @@ export default function OrdersPage() {
     await cancelOrder(id, reason); load()
   }
 
-  // Clients ne voient que leurs propres commandes
-  const displayedOrders = canManage ? orders : orders.filter(o => o.clientId === 1)
+  const handleCreateDelivery = async (order: Order) => {
+    const address = prompt('Adresse de livraison :', order.shippingAddress || '')
+    if (address === null) return
+    const agent = prompt('Nom du livreur (optionnel) :') ?? ''
+    try {
+      await createDelivery({
+        orderId: order.id,
+        deliveryAddress: address || order.shippingAddress,
+        deliveryAgent: agent || undefined,
+      })
+      load()
+    } catch { alert('Erreur lors de la création de la livraison.') }
+  }
+
+  const handleConfirmDelivery = async (orderId: number) => {
+    if (!confirm('Confirmer la livraison de cette commande ?')) return
+    try {
+      // On doit d'abord récupérer l'ID de la livraison via /deliveries/order/{orderId}
+      const { getDeliveryByOrder } = await import('../api/orders')
+      const delivery = await getDeliveryByOrder(orderId)
+      await confirmDelivery(delivery.id)
+      load()
+    } catch { alert('Erreur lors de la confirmation de la livraison.') }
+  }
+
+  // Le backend filtre déjà par utilisateur — displayedOrders = toutes les commandes reçues
+  const displayedOrders = orders
 
   return (
     <div className="space-y-6">
@@ -170,6 +198,18 @@ export default function OrdersPage() {
                         {canManage && o.status === 'PENDING' && (
                           <button onClick={() => handleValidate(o.id)}
                             className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded" title="Valider">
+                            <CheckCircle size={15} />
+                          </button>
+                        )}
+                        {canManage && o.status === 'VALIDATED' && (
+                          <button onClick={() => handleCreateDelivery(o)}
+                            className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded" title="Créer livraison">
+                            <Truck size={15} />
+                          </button>
+                        )}
+                        {canManage && o.status === 'SHIPPED' && (
+                          <button onClick={() => handleConfirmDelivery(o.id)}
+                            className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded" title="Confirmer livraison">
                             <CheckCircle size={15} />
                           </button>
                         )}

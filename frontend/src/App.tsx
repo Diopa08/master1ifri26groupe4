@@ -12,6 +12,7 @@ import BillingPage from './pages/BillingPage'
 import UsersPage from './pages/UsersPage'
 import ProductionPage from './pages/ProductionPage'
 import NotificationsPage from './pages/NotificationsPage'
+import ShopPage from './pages/ShopPage'
 
 export default function App() {
   return (
@@ -38,6 +39,9 @@ export default function App() {
               <InventoryPage />
             </RoleRoute>
           } />
+
+          {/* Catalogue produits pour ROLE_USER */}
+          <Route path="shop" element={<ShopPage />} />
 
           {/* Tous les rôles */}
           <Route path="orders" element={<OrdersPage />} />
