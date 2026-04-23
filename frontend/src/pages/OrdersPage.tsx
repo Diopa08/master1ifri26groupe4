@@ -349,7 +349,7 @@ export default function OrdersPage() {
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
-                {canManage && <div><span className="text-gray-500">Client :</span> <span className="font-medium">#{detail.clientId}</span></div>}
+                {canManage && <div><span className="text-gray-500">Client :</span> <span className="font-medium">{detail.client.email}</span></div>}
                 <div><span className="text-gray-500">Montant :</span> <span className="font-bold text-blue-700">{detail.totalAmount.toLocaleString('fr-FR')} FCFA</span></div>
                 <div><span className="text-gray-500">Adresse :</span> <span>{detail.shippingAddress || '—'}</span></div>
                 {detail.notes && <div><span className="text-gray-500">Notes :</span> <span>{detail.notes}</span></div>}
