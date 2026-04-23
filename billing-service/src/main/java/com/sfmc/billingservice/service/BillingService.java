@@ -53,6 +53,13 @@ public class BillingService {
         invoice.setStatus(InvoiceStatus.UNPAID);
         invoice.setNotes(request.getNotes());
 
+        // ── Infos client sauvegardées directement ──
+        invoice.setClientNom(request.getClientNom());
+        invoice.setClientPrenom(request.getClientPrenom());
+        invoice.setClientEmail(request.getClientEmail());
+        invoice.setClientTelephone(request.getClientTelephone());
+        invoice.setClientAdresse(request.getClientAdresse());
+
         Invoice saved = invoiceRepository.save(invoice);
         log.info("Facture {} générée avec succès (montant: {} FCFA)", invoiceNumber, saved.getTotalAmount());
 
@@ -201,6 +208,14 @@ public class BillingService {
         response.setNotes(invoice.getNotes());
         response.setCreatedAt(invoice.getCreatedAt());
         response.setUpdatedAt(invoice.getUpdatedAt());
+
+        // ── Infos client ──
+        response.setClientNom(invoice.getClientNom());
+        response.setClientPrenom(invoice.getClientPrenom());
+        response.setClientEmail(invoice.getClientEmail());
+        response.setClientTelephone(invoice.getClientTelephone());
+        response.setClientAdresse(invoice.getClientAdresse());
+
         return response;
     }
 }

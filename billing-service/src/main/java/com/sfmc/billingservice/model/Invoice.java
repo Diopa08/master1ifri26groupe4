@@ -131,4 +131,25 @@ public class Invoice {
     public void setNotes(String notes) { this.notes = notes; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    
+    private String clientNom;
+    private String clientPrenom;
+    private String clientEmail;
+    private String clientTelephone;
+    private String clientAdresse;
+    
+    public String getClientNom() { return clientNom; }
+    public void setClientNom(String clientNom) { this.clientNom = clientNom; }
+
+    public String getClientPrenom() { return clientPrenom; }
+    public void setClientPrenom(String clientPrenom) { this.clientPrenom = clientPrenom; }
+
+    public String getClientEmail() { return clientEmail; }
+    public void setClientEmail(String clientEmail) { this.clientEmail = clientEmail; }
+
+    public String getClientTelephone() { return clientTelephone; }
+    public void setClientTelephone(String clientTelephone) { this.clientTelephone = clientTelephone; }
+
+    public String getClientAdresse() { return clientAdresse; }
+    public void setClientAdresse(String clientAdresse) { this.clientAdresse = clientAdresse; }
 }

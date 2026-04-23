@@ -26,16 +26,14 @@ public class InvoiceDTO {
 
         private String notes;
 
-        public GenerateInvoiceRequest() {}
+        // ── Infos client ──
+        private String clientNom;
+        private String clientPrenom;
+        private String clientEmail;
+        private String clientTelephone;
+        private String clientAdresse;
 
-        public GenerateInvoiceRequest(Long orderId, String orderNumber, Long clientId,
-                                      Double totalAmount, String notes) {
-            this.orderId = orderId;
-            this.orderNumber = orderNumber;
-            this.clientId = clientId;
-            this.totalAmount = totalAmount;
-            this.notes = notes;
-        }
+        public GenerateInvoiceRequest() {}
 
         public Long getOrderId() { return orderId; }
         public void setOrderId(Long orderId) { this.orderId = orderId; }
@@ -51,6 +49,21 @@ public class InvoiceDTO {
 
         public String getNotes() { return notes; }
         public void setNotes(String notes) { this.notes = notes; }
+
+        public String getClientNom() { return clientNom; }
+        public void setClientNom(String clientNom) { this.clientNom = clientNom; }
+
+        public String getClientPrenom() { return clientPrenom; }
+        public void setClientPrenom(String clientPrenom) { this.clientPrenom = clientPrenom; }
+
+        public String getClientEmail() { return clientEmail; }
+        public void setClientEmail(String clientEmail) { this.clientEmail = clientEmail; }
+
+        public String getClientTelephone() { return clientTelephone; }
+        public void setClientTelephone(String clientTelephone) { this.clientTelephone = clientTelephone; }
+
+        public String getClientAdresse() { return clientAdresse; }
+        public void setClientAdresse(String clientAdresse) { this.clientAdresse = clientAdresse; }
     }
 
     // ── Request : enregistrer un paiement ────────────────────────────────────
@@ -108,29 +121,14 @@ public class InvoiceDTO {
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
 
-        public InvoiceResponse() {}
+        // ── Infos client ──
+        private String clientNom;
+        private String clientPrenom;
+        private String clientEmail;
+        private String clientTelephone;
+        private String clientAdresse;
 
-        public InvoiceResponse(Long id, String invoiceNumber, Long orderId, String orderNumber,
-                                Long clientId, Double totalAmount, Double taxAmount, Double netAmount,
-                                InvoiceStatus status, PaymentMethod paymentMethod,
-                                LocalDate dueDate, LocalDate paidAt, String notes,
-                                LocalDateTime createdAt, LocalDateTime updatedAt) {
-            this.id = id;
-            this.invoiceNumber = invoiceNumber;
-            this.orderId = orderId;
-            this.orderNumber = orderNumber;
-            this.clientId = clientId;
-            this.totalAmount = totalAmount;
-            this.taxAmount = taxAmount;
-            this.netAmount = netAmount;
-            this.status = status;
-            this.paymentMethod = paymentMethod;
-            this.dueDate = dueDate;
-            this.paidAt = paidAt;
-            this.notes = notes;
-            this.createdAt = createdAt;
-            this.updatedAt = updatedAt;
-        }
+        public InvoiceResponse() {}
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
@@ -176,5 +174,20 @@ public class InvoiceDTO {
 
         public LocalDateTime getUpdatedAt() { return updatedAt; }
         public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+        public String getClientNom() { return clientNom; }
+        public void setClientNom(String clientNom) { this.clientNom = clientNom; }
+
+        public String getClientPrenom() { return clientPrenom; }
+        public void setClientPrenom(String clientPrenom) { this.clientPrenom = clientPrenom; }
+
+        public String getClientEmail() { return clientEmail; }
+        public void setClientEmail(String clientEmail) { this.clientEmail = clientEmail; }
+
+        public String getClientTelephone() { return clientTelephone; }
+        public void setClientTelephone(String clientTelephone) { this.clientTelephone = clientTelephone; }
+
+        public String getClientAdresse() { return clientAdresse; }
+        public void setClientAdresse(String clientAdresse) { this.clientAdresse = clientAdresse; }
     }
 }
