@@ -154,7 +154,7 @@ export default function DashboardPage() {
                 {recentOrders.map(order => (
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="py-3 font-mono text-xs">{order.orderNumber}</td>
-                    <td className="py-3">Client #{order.clientId}</td>
+                    <td className="py-3">Client #{order.client.email}</td>
                     <td className="py-3 font-medium">{order.totalAmount.toLocaleString('fr-FR')} FCFA</td>
                     <td className="py-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>

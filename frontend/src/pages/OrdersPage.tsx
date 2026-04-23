@@ -151,7 +151,7 @@ export default function OrdersPage() {
                 {displayedOrders.map(o => (
                   <tr key={o.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-mono text-xs font-medium">{o.orderNumber}</td>
-                    {canManage && <td className="px-4 py-3 text-gray-600">Client #{o?.client?.email}</td>}
+                    {canManage && <td className="px-4 py-3 text-gray-600">{o?.client?.email}</td>}
                     <td className="px-4 py-3 font-semibold text-blue-700">
                       {o.totalAmount.toLocaleString('fr-FR')} FCFA
                     </td>
