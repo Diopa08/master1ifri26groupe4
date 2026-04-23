@@ -3,6 +3,7 @@ package com.sfmc.orderservice.dto;
 import com.sfmc.orderservice.model.OrderStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import com.sfmc.orderservice.dto.ClientDTO;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -104,6 +105,10 @@ public class OrderDTO {
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
         public LocalDateTime getUpdatedAt() { return updatedAt; }
         public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+        private ClientDTO client;
+		public ClientDTO getClient() { return client; }
+		public void setClient(ClientDTO client) { this.client = client; }
+
     }
 
     public static class OrderItemResponse {

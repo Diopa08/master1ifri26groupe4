@@ -41,6 +41,8 @@ public class SecurityConfig {
                 gatewayHeaderFilter,
                 UsernamePasswordAuthenticationFilter.class
             );
+        
+        
 
         return http.build();
     }

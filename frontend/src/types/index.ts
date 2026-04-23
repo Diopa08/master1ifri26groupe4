@@ -74,6 +74,7 @@ export interface Order {
   notes?: string
   createdAt: string
   updatedAt: string
+  client:any;
 }
 export interface CreateOrderRequest {
   clientId: number

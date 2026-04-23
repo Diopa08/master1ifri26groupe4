@@ -32,7 +32,8 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/auth/login",
                     "/api/auth/register",
-                    "/oauth2/jwks"
+                    "/oauth2/jwks",
+                    "/users/internal/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

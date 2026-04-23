@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import com.sfmc.orderservice.event.AuthServiceClient;
+import com.sfmc.orderservice.dto.ClientDTO;
 
 @Service
 @Transactional
@@ -32,11 +34,15 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final BillingServiceClient billingServiceClient;
+    private final AuthServiceClient authServiceClient;
 
-    public OrderService(OrderRepository orderRepository, BillingServiceClient billingServiceClient) {
-        this.orderRepository = orderRepository;
-        this.billingServiceClient = billingServiceClient;
-    }
+    public OrderService(OrderRepository orderRepository,
+            BillingServiceClient billingServiceClient,
+            AuthServiceClient authServiceClient) {
+	this.orderRepository = orderRepository;
+	this.billingServiceClient = billingServiceClient;
+	this.authServiceClient = authServiceClient;
+	}
 
     private static final Map<OrderStatus, Set<OrderStatus>> ALLOWED_TRANSITIONS = Map.of(
         OrderStatus.PENDING,       Set.of(OrderStatus.VALIDATED, OrderStatus.CANCELLED),
@@ -126,6 +132,8 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public OrderResponse getOrderById(Long orderId) {
+
+
         return toResponse(getOrderEntityById(orderId));
     }
 
@@ -137,11 +145,14 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAll().stream()
+    	log.info("### CONTROLLER getAllOrders APPELE ###");
+    	        return orderRepository.findAll().stream()
             .map(this::toResponse).collect(Collectors.toList());
     }
 
     public OrderResponse cancelOrder(Long orderId, String reason) {
+
+
         UpdateStatusRequest req = new UpdateStatusRequest(OrderStatus.CANCELLED, reason);
         return updateOrderStatus(orderId, req);
     }
@@ -158,6 +169,7 @@ public class OrderService {
     }
 
     private OrderResponse toResponse(Order order) {
+    	System.out.println("TO RESPONSE APPELEE");
         List<OrderItemResponse> itemResponses = order.getItems() == null ? List.of() :
             order.getItems().stream().map(item -> {
                 OrderItemResponse r = new OrderItemResponse();
@@ -170,10 +182,15 @@ public class OrderService {
                 return r;
             }).collect(Collectors.toList());
 
+        
         OrderResponse r = new OrderResponse();
         r.setId(order.getId());
         r.setOrderNumber(order.getOrderNumber());
         r.setClientId(order.getClientId());
+        ClientDTO client = authServiceClient.getClientById(order.getClientId());
+        log.info("CLIENT RECUPERE = {}", client);
+        
+        r.setClient(client);
         r.setStatus(order.getStatus());
         r.setItems(itemResponses);
         r.setTotalAmount(order.getTotalAmount());

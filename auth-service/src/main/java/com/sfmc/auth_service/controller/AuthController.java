@@ -30,4 +30,6 @@ public class AuthController {
         authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+    
+    
 }

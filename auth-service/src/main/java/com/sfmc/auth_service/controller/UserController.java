@@ -62,4 +62,9 @@ public class UserController {
         userService.deleteUser(userId);
         return ResponseEntity.noContent().build();
     }
+    
+    @GetMapping("/internal/{id}")
+    public UserResponse getUserInternal(@PathVariable Long id) {
+        return userService.getUserById(id);
+    }
 }
