@@ -1,51 +1,41 @@
 package com.sfmc.inventory_service.entity;
 
+
 import jakarta.persistence.*;
 
-
 @Entity
-@Table(name = "stocks", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"product_id", "warehouse_id"})
-})
+@Table(name = "stocks")
 public class Stock {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "product_id", nullable = false)
     private Long productId;
-
-    @Column(nullable = false)
-    private Double quantity;
-
-    @Column(name = "warehouse_id", nullable = false)
-    private Long warehouseId;
-
-
-    @Column(nullable = false)
-    private Double threshold;
-
-    public Stock() {}
-
-    public Stock(Long productId, Double quantity, Long warehouseId, Double threshold) {
-        this.productId = productId;
-        this.quantity = quantity;
-        this.warehouseId = warehouseId;
-        this.threshold = threshold;
-    }
+    private String productName;
+    private int quantity;
+    private int criticalThreshold;  // seuil critique CDC
+    private String warehouseId;     // multi-entrepôts CDC
 
     public Long getId() { return id; }
 
     public Long getProductId() { return productId; }
     public void setProductId(Long productId) { this.productId = productId; }
 
-    public Double getQuantity() { return quantity; }
-    public void setQuantity(Double quantity) { this.quantity = quantity; }
+    public String getProductName() { return productName; }
+    public void setProductName(String name) { this.productName = name; }
 
-    public Long getWarehouseId() { return warehouseId; }
-    public void setWarehouseId(Long warehouseId) { this.warehouseId = warehouseId; }
+    public int getQuantity() { return quantity; }
+    public void setQuantity(int quantity) { this.quantity = quantity; }
 
-    public Double getThreshold() { return threshold; }
-    public void setThreshold(Double threshold) { this.threshold = threshold; }
+    public int getCriticalThreshold() { return criticalThreshold; }
+    public void setCriticalThreshold(int t) { this.criticalThreshold = t; }
+
+    public String getWarehouseId() { return warehouseId; }
+    public void setWarehouseId(String warehouseId) { this.warehouseId = warehouseId; }
+
+    // ✅ Vérifier si stock sous le seuil critique
+    public boolean isCritical() {
+        return this.quantity <= this.criticalThreshold;
+    }
 }

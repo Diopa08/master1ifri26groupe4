@@ -1,19 +1,17 @@
 package com.sfmc.orderservice;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
-/**
- * Point d'entrée principal du microservice Order Service
- * SFMC Bénin - Gestion des commandes
- */
 @SpringBootApplication
-@EnableFeignClients
 @EnableDiscoveryClient
+@EnableFeignClients        // ← activer Feign
+@EnableMethodSecurity
 public class OrderServiceApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(OrderServiceApplication.class, args);
     }

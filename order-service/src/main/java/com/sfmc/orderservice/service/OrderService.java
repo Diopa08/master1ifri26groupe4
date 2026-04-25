@@ -1,54 +1,81 @@
 package com.sfmc.orderservice.service;
 
-import com.sfmc.orderservice.dto.OrderDTO.CreateOrderRequest;
-import com.sfmc.orderservice.dto.OrderDTO.OrderItemResponse;
-import com.sfmc.orderservice.dto.OrderDTO.OrderResponse;
-import com.sfmc.orderservice.dto.OrderDTO.UpdateStatusRequest;
-import com.sfmc.orderservice.event.BillingRequest;
-import com.sfmc.orderservice.event.BillingServiceClient;
-import com.sfmc.orderservice.exception.OrderException.InvalidStatusTransitionException;
-import com.sfmc.orderservice.exception.OrderException.OrderNotFoundException;
+import com.sfmc.orderservice.client.InventoryClient;
+import com.sfmc.orderservice.dto.OrderDTO.*;
+import com.sfmc.orderservice.event.*;
+import com.sfmc.orderservice.exception.OrderException.*;
 import com.sfmc.orderservice.model.Order;
 import com.sfmc.orderservice.model.OrderItem;
 import com.sfmc.orderservice.model.OrderStatus;
 import com.sfmc.orderservice.repository.OrderRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 public class OrderService {
 
-    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
+    private static final Logger log =
+        LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
+    private final InventoryClient inventoryClient;
+    private final OrderEventPublisher eventPublisher;
     private final BillingServiceClient billingServiceClient;
 
-    public OrderService(OrderRepository orderRepository, BillingServiceClient billingServiceClient) {
+    public OrderService(OrderRepository orderRepository,
+                        InventoryClient inventoryClient,
+                        OrderEventPublisher eventPublisher,
+                        BillingServiceClient billingServiceClient) {
         this.orderRepository = orderRepository;
+        this.inventoryClient = inventoryClient;
+        this.eventPublisher = eventPublisher;
         this.billingServiceClient = billingServiceClient;
     }
 
-    private static final Map<OrderStatus, Set<OrderStatus>> ALLOWED_TRANSITIONS = Map.of(
-        OrderStatus.PENDING,       Set.of(OrderStatus.VALIDATED, OrderStatus.CANCELLED),
-        OrderStatus.VALIDATED,     Set.of(OrderStatus.IN_PRODUCTION, OrderStatus.SHIPPED, OrderStatus.CANCELLED),
-        OrderStatus.IN_PRODUCTION, Set.of(OrderStatus.VALIDATED, OrderStatus.CANCELLED),
-        OrderStatus.SHIPPED,       Set.of(OrderStatus.DELIVERED),
-        OrderStatus.DELIVERED,     Set.of(),
-        OrderStatus.CANCELLED,     Set.of()
-    );
-
+    @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
-        log.info("Creation commande pour client ID: {}", request.getClientId());
+        log.info("Création commande client : {}", request.getClientId());
+
+        // 1. Vérifier stock pour chaque item
+        for (OrderItemRequest item : request.getItems()) {
+            boolean available = inventoryClient.isAvailable(
+                item.getProductId(), item.getQuantity()
+            );
+            if (!available) {
+                eventPublisher.publishProductionTrigger(
+                    null, item.getProductId(), item.getQuantity()
+                );
+                throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Stock insuffisant pour produit "
+                        + item.getProductId()
+                        + " — production déclenchée"
+                );
+            }
+        }
+
+        // 2. Réserver le stock
+        for (OrderItemRequest item : request.getItems()) {
+            inventoryClient.reserve(item.getProductId(), item.getQuantity());
+        }
+
+        // 3. Construire la commande
+        Order order = new Order();
+        order.setClientId(request.getClientId());
+        order.setShippingAddress(request.getShippingAddress());
+        order.setNotes(request.getNotes());
+        order.setStatus(OrderStatus.PENDING);
+        order.setOrderNumber(generateOrderNumber());
 
         List<OrderItem> items = request.getItems().stream()
             .map(itemReq -> {
@@ -57,130 +84,140 @@ public class OrderService {
                 item.setProductName(itemReq.getProductName());
                 item.setQuantity(itemReq.getQuantity());
                 item.setUnitPrice(itemReq.getUnitPrice());
+                item.setOrder(order);
                 return item;
-            })
-            .collect(Collectors.toList());
+            }).collect(Collectors.toList());
 
-        double total = items.stream().mapToDouble(OrderItem::getSubtotal).sum();
-        String orderNumber = generateOrderNumber();
-
-        Order order = new Order();
-        order.setOrderNumber(orderNumber);
-        order.setClientId(request.getClientId());
-        order.setStatus(OrderStatus.PENDING);
-        order.setTotalAmount(total);
-        order.setShippingAddress(request.getShippingAddress());
-        order.setNotes(request.getNotes());
-
-        items.forEach(item -> item.setOrder(order));
         order.setItems(items);
+        order.setTotalAmount(
+            items.stream()
+                .mapToDouble(i -> i.getUnitPrice() * i.getQuantity())
+                .sum()
+        );
 
         Order saved = orderRepository.save(order);
-        log.info("Commande creee : {}", saved.getOrderNumber());
+
+        // 4. Publier OrderCreated via RabbitMQ
+        List<OrderItemEvent> itemEvents = items.stream()
+            .map(i -> new OrderItemEvent(
+                i.getProductId(), i.getProductName(),
+                i.getQuantity(), i.getUnitPrice()
+            )).collect(Collectors.toList());
+
+        eventPublisher.publishOrderCreated(
+            saved.getId(), saved.getClientId(),
+            itemEvents, saved.getTotalAmount(),
+            request.getClientEmail()
+        );
+
+        log.info("Commande créée : {}", saved.getOrderNumber());
         return toResponse(saved);
     }
 
-    public OrderResponse validateOrder(Long orderId) {
-        log.info("Validation commande ID: {}", orderId);
-        Order order = getOrderEntityById(orderId);
-
-        if (order.getStatus() != OrderStatus.PENDING) {
-            throw new InvalidStatusTransitionException(
-                order.getStatus().name(), OrderStatus.VALIDATED.name());
-        }
-
-        order.setStatus(OrderStatus.VALIDATED);
-        Order saved = orderRepository.save(order);
-
-        try {
-            BillingRequest billing = new BillingRequest();
-            billing.setOrderId(saved.getId());
-            billing.setOrderNumber(saved.getOrderNumber());
-            billing.setClientId(saved.getClientId());
-            billing.setTotalAmount(saved.getTotalAmount());
-            billingServiceClient.generateInvoice(billing);
-            log.info("Facture generee pour commande {}", saved.getOrderNumber());
-        } catch (Exception e) {
-            log.error("Erreur facturation: {}", e.getMessage());
-        }
-
-        return toResponse(saved);
-    }
-
-    public OrderResponse updateOrderStatus(Long orderId, UpdateStatusRequest request) {
-        log.info("Changement etat commande ID: {} -> {}", orderId, request.getNewStatus());
-        Order order = getOrderEntityById(orderId);
-        OrderStatus currentStatus = order.getStatus();
-        OrderStatus newStatus = request.getNewStatus();
-
-        Set<OrderStatus> allowed = ALLOWED_TRANSITIONS.getOrDefault(currentStatus, Set.of());
-        if (!allowed.contains(newStatus)) {
-            throw new InvalidStatusTransitionException(currentStatus.name(), newStatus.name());
-        }
-
-        order.setStatus(newStatus);
-        Order saved = orderRepository.save(order);
-        log.info("Commande {} : {} -> {}", order.getOrderNumber(), currentStatus, newStatus);
-        return toResponse(saved);
-    }
-
-    @Transactional(readOnly = true)
-    public OrderResponse getOrderById(Long orderId) {
-        return toResponse(getOrderEntityById(orderId));
-    }
-
-    @Transactional(readOnly = true)
-    public List<OrderResponse> getOrdersByClient(Long clientId) {
-        return orderRepository.findByClientId(clientId).stream()
-            .map(this::toResponse).collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
     public List<OrderResponse> getAllOrders() {
         return orderRepository.findAll().stream()
-            .map(this::toResponse).collect(Collectors.toList());
+            .map(this::toResponse)
+            .collect(Collectors.toList());
     }
 
-    public OrderResponse cancelOrder(Long orderId, String reason) {
-        UpdateStatusRequest req = new UpdateStatusRequest(OrderStatus.CANCELLED, reason);
-        return updateOrderStatus(orderId, req);
+    public OrderResponse getOrderById(Long id) {
+        return toResponse(findById(id));
     }
 
-    private Order getOrderEntityById(Long id) {
+    public List<OrderResponse> getOrdersByClient(Long clientId) {
+        return orderRepository.findByClientId(clientId).stream()
+            .map(this::toResponse)
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public OrderResponse validateOrder(Long id) {
+        Order order = findById(id);
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new InvalidStatusTransitionException(
+                order.getStatus().name(), "VALIDATED");
+        }
+        order.setStatus(OrderStatus.VALIDATED);
+        return toResponse(orderRepository.save(order));
+    }
+
+    @Transactional
+    public OrderResponse updateOrderStatus(Long id, UpdateStatusRequest request) {
+        Order order = findById(id);
+        OrderStatus newStatus = request.getNewStatus(); // ✅ déjà OrderStatus
+        validateTransition(order.getStatus(), newStatus);
+        order.setStatus(newStatus);
+        return toResponse(orderRepository.save(order));
+    }
+
+    @Transactional
+    public OrderResponse cancelOrder(Long id, String reason) {
+        Order order = findById(id);
+        if (order.getStatus() == OrderStatus.DELIVERED) {
+            throw new InvalidStatusTransitionException(
+                order.getStatus().name(), "CANCELLED");
+        }
+        order.setStatus(OrderStatus.CANCELLED);
+        if (reason != null) order.setNotes(reason);
+        return toResponse(orderRepository.save(order));
+    }
+
+    private void validateTransition(OrderStatus current, OrderStatus next) {
+        boolean valid = switch (current) {
+            case PENDING       -> next == OrderStatus.VALIDATED
+                                   || next == OrderStatus.CANCELLED;
+            case VALIDATED     -> next == OrderStatus.IN_PRODUCTION
+                                   || next == OrderStatus.SHIPPED
+                                   || next == OrderStatus.CANCELLED;
+            case IN_PRODUCTION -> next == OrderStatus.SHIPPED;
+            case SHIPPED       -> next == OrderStatus.DELIVERED;
+            default            -> false;
+        };
+        if (!valid) {
+            throw new InvalidStatusTransitionException(
+                current.name(), next.name());
+        }
+    }
+
+    private String generateOrderNumber() {
+        return "ORD-" + LocalDateTime.now()
+            .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+    }
+
+    private Order findById(Long id) {
         return orderRepository.findById(id)
             .orElseThrow(() -> new OrderNotFoundException(id));
     }
 
-    private String generateOrderNumber() {
-        String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        long count = orderRepository.count() + 1;
-        return String.format("CMD-%s-%04d", date, count);
-    }
-
     private OrderResponse toResponse(Order order) {
-        List<OrderItemResponse> itemResponses = order.getItems() == null ? List.of() :
-            order.getItems().stream().map(item -> {
-                OrderItemResponse r = new OrderItemResponse();
-                r.setId(item.getId());
-                r.setProductId(item.getProductId());
-                r.setProductName(item.getProductName());
-                r.setQuantity(item.getQuantity());
-                r.setUnitPrice(item.getUnitPrice());
-                r.setSubtotal(item.getSubtotal());
-                return r;
-            }).collect(Collectors.toList());
-
-        OrderResponse r = new OrderResponse();
-        r.setId(order.getId());
-        r.setOrderNumber(order.getOrderNumber());
-        r.setClientId(order.getClientId());
-        r.setStatus(order.getStatus());
-        r.setItems(itemResponses);
-        r.setTotalAmount(order.getTotalAmount());
-        r.setShippingAddress(order.getShippingAddress());
-        r.setNotes(order.getNotes());
-        r.setCreatedAt(order.getCreatedAt());
-        r.setUpdatedAt(order.getUpdatedAt());
-        return r;
+        OrderResponse res = new OrderResponse();
+        res.setId(order.getId());
+        res.setOrderNumber(order.getOrderNumber());
+        res.setClientId(order.getClientId());
+        res.setStatus(order.getStatus());
+        res.setTotalAmount(order.getTotalAmount());
+        res.setShippingAddress(order.getShippingAddress());
+        res.setNotes(order.getNotes());
+        res.setCreatedAt(order.getCreatedAt());
+        res.setUpdatedAt(order.getUpdatedAt());
+        res.setItems(order.getItems().stream()
+            .map(item -> {
+                OrderItemResponse ir = new OrderItemResponse();
+                ir.setId(item.getId());
+                ir.setProductId(item.getProductId());
+                ir.setProductName(item.getProductName());
+                ir.setQuantity(item.getQuantity());
+                ir.setUnitPrice(item.getUnitPrice());
+                ir.setSubtotal(item.getUnitPrice() * item.getQuantity());
+                return ir;
+            }).collect(Collectors.toList()));
+        return res;
+    }
+    
+    public List<OrderResponse> getOrdersByStatus(OrderStatus status) {
+        return orderRepository.findByStatus(status)
+            .stream()
+            .map(this::toResponse)
+            .collect(Collectors.toList());
     }
 }

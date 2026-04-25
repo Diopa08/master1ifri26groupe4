@@ -1,8 +1,12 @@
 package com.sfmc.inventory_service.entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "stock_movements")
@@ -11,47 +15,36 @@ public class StockMovement {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "stock_id", nullable = false)
-    private Long stockId;
-
-    // IN (entrée) ou OUT (sortie)
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private MovementType type;
-
-    @Column(nullable = false)
-    private Double quantity;
-
-    @Column(nullable = false)
+ // ✅ Ajouter cette relation vers Stock
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "stock_id", nullable = false)
+    private Stock stock;
+    private Long productId;
+    private String type;       // "IN" ou "OUT"
+    private int quantity;
+    private String reason;     // "SALE", "PRODUCTION", "LOSS"
     private LocalDateTime date;
 
-    private String reason;
-
-    public StockMovement() {}
-
-    public StockMovement(Long stockId, MovementType type, Double quantity, LocalDateTime date, String reason) {
-        this.stockId = stockId;
-        this.type = type;
-        this.quantity = quantity;
-        this.date = date;
-        this.reason = reason;
+    @PrePersist
+    public void prePersist() {
+        this.date = LocalDateTime.now();
     }
 
     public Long getId() { return id; }
+    public Stock getStock() { return stock; }
+    public void setStock(Stock stock) { this.stock = stock; }
 
-    public Long getStockId() { return stockId; }
-    public void setStockId(Long stockId) { this.stockId = stockId; }
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
 
-    public MovementType getType() { return type; }
-    public void setType(MovementType type) { this.type = type; }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 
-    public Double getQuantity() { return quantity; }
-    public void setQuantity(Double quantity) { this.quantity = quantity; }
-
-    public LocalDateTime getDate() { return date; }
-    public void setDate(LocalDateTime date) { this.date = date; }
+    public int getQuantity() { return quantity; }
+    public void setQuantity(int quantity) { this.quantity = quantity; }
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
+
+    public LocalDateTime getDate() { return date; }
 }

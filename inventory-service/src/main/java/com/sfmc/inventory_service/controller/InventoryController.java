@@ -1,13 +1,13 @@
 package com.sfmc.inventory_service.controller;
 
-import com.sfmc.inventory_service.dto.StockCheckResponse;
-import com.sfmc.inventory_service.dto.StockRequest;
-import com.sfmc.inventory_service.dto.StockUpdateRequest;
+
+
 import com.sfmc.inventory_service.entity.Stock;
 import com.sfmc.inventory_service.entity.StockMovement;
 import com.sfmc.inventory_service.service.InventoryService;
-import org.springframework.http.HttpStatus;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,55 +22,54 @@ public class InventoryController {
         this.inventoryService = inventoryService;
     }
 
+    // ✅ Appelé par order-service via Feign
+    @GetMapping("/check/{productId}")
+    public ResponseEntity<Boolean> isAvailable(
+            @PathVariable Long productId,
+            @RequestParam int quantity) {
+        return ResponseEntity.ok(
+            inventoryService.isAvailable(productId, quantity));
+    }
 
-    @GetMapping("/stocks")
+    // ✅ Appelé par order-service via Feign
+    @PutMapping("/reserve/{productId}")
+    public ResponseEntity<Void> reserve(
+            @PathVariable Long productId,
+            @RequestParam int quantity) {
+        inventoryService.reserve(productId, quantity);
+        return ResponseEntity.ok().build();
+    }
+
+    // Lister tous les stocks
+    @GetMapping
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_OPERATOR')")
     public ResponseEntity<List<Stock>> getAllStocks() {
         return ResponseEntity.ok(inventoryService.getAllStocks());
     }
 
-
-    @GetMapping("/stocks/{id}")
-    public ResponseEntity<Stock> getStockById(@PathVariable Long id) {
-        return ResponseEntity.ok(inventoryService.getStockById(id));
+    // Stocks critiques
+    @GetMapping("/critical")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_OPERATOR')")
+    public ResponseEntity<List<Stock>> getCriticalStocks() {
+        return ResponseEntity.ok(inventoryService.getCriticalStocks());
     }
 
-
-    @GetMapping("/stocks/warehouse/{warehouseId}")
-    public ResponseEntity<List<Stock>> getByWarehouse(@PathVariable Long warehouseId) {
-        return ResponseEntity.ok(inventoryService.getStocksByWarehouse(warehouseId));
+    // Historique mouvements
+    @GetMapping("/{productId}/movements")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_OPERATOR')")
+    public ResponseEntity<List<StockMovement>> getMovements(
+            @PathVariable Long productId) {
+        return ResponseEntity.ok(inventoryService.getMovements(productId));
     }
 
-
-    @GetMapping("/stocks/product/{productId}")
-    public ResponseEntity<List<Stock>> getByProduct(@PathVariable Long productId) {
-        return ResponseEntity.ok(inventoryService.getStocksByProduct(productId));
-    }
-
-
-    @PostMapping("/stocks")
-    public ResponseEntity<Stock> createStock(@RequestBody StockRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(inventoryService.createStock(request));
-    }
-
-  
-    @PutMapping("/stocks/{id}/update")
-    public ResponseEntity<Stock> updateStock(@PathVariable Long id,
-                                             @RequestBody StockUpdateRequest request) {
-        return ResponseEntity.ok(inventoryService.updateStock(id, request));
-    }
-
-    
-    @GetMapping("/check")
-    public ResponseEntity<StockCheckResponse> checkAvailability(
-            @RequestParam Long productId,
-            @RequestParam Long warehouseId,
-            @RequestParam Double quantity) {
-        return ResponseEntity.ok(inventoryService.checkAvailability(productId, warehouseId, quantity));
-    }
-
-   
-    @GetMapping("/movements/{stockId}")
-    public ResponseEntity<List<StockMovement>> getMovements(@PathVariable Long stockId) {
-        return ResponseEntity.ok(inventoryService.getMovements(stockId));
+    // Ajouter stock manuellement
+    @PostMapping("/{productId}/add")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_OPERATOR')")
+    public ResponseEntity<Stock> addStock(
+            @PathVariable Long productId,
+            @RequestParam int quantity,
+            @RequestParam String reason) {
+        return ResponseEntity.ok(
+            inventoryService.addStock(productId, quantity, reason));
     }
 }

@@ -1,9 +1,8 @@
 package com.sfmc.billingservice.model;
 
+
 public enum InvoiceStatus {
-    UNPAID,
-    PARTIAL,
+    PENDING,
     PAID,
-    OVERDUE,
     CANCELLED
 }

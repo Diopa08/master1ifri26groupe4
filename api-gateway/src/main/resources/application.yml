@@ -24,7 +24,7 @@ spring:
         - id: auth-login-user
           uri: lb://auth-service
           predicates:
-            - Path=/users/**
+            - Path=/api/users/**
               
         
         # ✅ PROTÉGÉ — JWT validé automatiquement
@@ -46,7 +46,7 @@ spring:
         - id: production-service
           uri: lb://production-service
           predicates:
-            - Path=/production/**
+            - Path=/api/production/**
 
         - id: billing-service
           uri: lb://billing-service

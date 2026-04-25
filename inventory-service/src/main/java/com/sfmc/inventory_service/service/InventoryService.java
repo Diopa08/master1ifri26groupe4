@@ -1,19 +1,18 @@
 package com.sfmc.inventory_service.service;
 
-import com.sfmc.inventory_service.dto.StockCheckResponse;
-import com.sfmc.inventory_service.dto.StockRequest;
-import com.sfmc.inventory_service.dto.StockUpdateRequest;
-import com.sfmc.inventory_service.entity.MovementType;
+
+
+import com.sfmc.inventory_service.dto.StockUpdatedEvent;
 import com.sfmc.inventory_service.entity.Stock;
 import com.sfmc.inventory_service.entity.StockMovement;
 import com.sfmc.inventory_service.repository.StockMovementRepository;
 import com.sfmc.inventory_service.repository.StockRepository;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,115 +22,102 @@ public class InventoryService {
     private final StockMovementRepository movementRepository;
 
     public InventoryService(StockRepository stockRepository,
-                            StockMovementRepository movementRepository) {
+                             StockMovementRepository movementRepository) {
         this.stockRepository = stockRepository;
         this.movementRepository = movementRepository;
     }
 
-    // ─── Lecture ───────────────────────────────────────────────────────────────
+    // ✅ Vérifier disponibilité — appelé par order-service via Feign
+    public boolean isAvailable(Long productId, int quantity) {
+        return stockRepository.findByProductId(productId)
+            .map(stock -> stock.getQuantity() >= quantity)
+            .orElse(false);
+    }
 
+    // ✅ Réserver du stock — appelé par order-service via Feign
+    @Transactional
+    public void reserve(Long productId, int quantity) {
+        Stock stock = stockRepository.findByProductId(productId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Produit introuvable en stock : " + productId));
+
+        if (stock.getQuantity() < quantity) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST, "Stock insuffisant");
+        }
+
+        stock.setQuantity(stock.getQuantity() - quantity);
+        stockRepository.save(stock);
+
+        // Enregistrer le mouvement
+        saveMovement(stock, "OUT", quantity, "SALE");
+
+        // Alerte seuil critique
+        if (stock.isCritical()) {
+            System.out.println("⚠️ ALERTE : Stock critique pour produit "
+                + productId + " → " + stock.getQuantity() + " unités");
+        }
+    }
+
+    // ✅ Mise à jour stock depuis RabbitMQ (production terminée)
+    @Transactional
+    public void updateStockFromEvent(StockUpdatedEvent event) {
+        Stock stock = stockRepository.findByProductId(event.productId())
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Produit introuvable : " + event.productId()));
+
+        if ("IN".equals(event.type())) {
+            stock.setQuantity(stock.getQuantity() + event.quantityChanged());
+        } else {
+            stock.setQuantity(stock.getQuantity() - event.quantityChanged());
+        }
+
+        stockRepository.save(stock);
+        saveMovement(stock, event.type(), event.quantityChanged(), "PRODUCTION");
+
+        System.out.println("Stock mis à jour pour produit "
+            + event.productId() + " → " + stock.getQuantity() + " unités");
+    }
+
+    // Lister tous les stocks
     public List<Stock> getAllStocks() {
         return stockRepository.findAll();
     }
 
-    public Stock getStockById(Long id) {
-        return stockRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Stock introuvable avec l'id : " + id));
+    // Stocks critiques
+    public List<Stock> getCriticalStocks() {
+        return stockRepository.findAll().stream()
+            .filter(Stock::isCritical)
+            .toList();
     }
 
-    public List<Stock> getStocksByWarehouse(Long warehouseId) {
-        return stockRepository.findByWarehouseId(warehouseId);
+    // Historique mouvements d'un produit
+    public List<StockMovement> getMovements(Long productId) {
+        return movementRepository.findByProductIdOrderByDateDesc(productId);
     }
 
-    public List<Stock> getStocksByProduct(Long productId) {
-        return stockRepository.findByProductId(productId);
-    }
+    // Ajouter du stock manuellement
+    @Transactional
+    public Stock addStock(Long productId, int quantity, String reason) {
+        Stock stock = stockRepository.findByProductId(productId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Produit introuvable : " + productId));
 
-    // ─── Création d'une entrée de stock ────────────────────────────────────────
+        stock.setQuantity(stock.getQuantity() + quantity);
+        saveMovement(stock, "OUT", quantity, "SALE");
 
-    public Stock createStock(StockRequest request) {
-        stockRepository.findByProductIdAndWarehouseId(request.getProductId(), request.getWarehouseId())
-                .ifPresent(s -> { throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "Une entrée de stock existe déjà pour ce produit dans cet entrepôt."); });
-
-        Stock stock = new Stock(
-                request.getProductId(),
-                request.getQuantity(),
-                request.getWarehouseId(),
-                request.getThreshold()
-        );
         return stockRepository.save(stock);
     }
 
-    // ─── Mise à jour du stock (IN / OUT) ───────────────────────────────────────
-
-    /**
-     * Met à jour la quantité en stock et enregistre le mouvement correspondant.
-     * Déclenché après production terminée (IN) ou après vente/perte (OUT).
-     * (cf. cahier des charges §2.2 — Cas 2 : Mise à jour du stock)
-     */
-    @Transactional
-    public Stock updateStock(Long stockId, StockUpdateRequest request) {
-        Stock stock = getStockById(stockId);
-
-        if (request.getType() == MovementType.OUT) {
-            if (stock.getQuantity() < request.getQuantity()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Quantité insuffisante en stock. Disponible : " + stock.getQuantity());
-            }
-            stock.setQuantity(stock.getQuantity() - request.getQuantity());
-        } else {
-            stock.setQuantity(stock.getQuantity() + request.getQuantity());
-        }
-
-        stockRepository.save(stock);
-
-        // Enregistrement du mouvement dans l'historique
-        StockMovement movement = new StockMovement(
-                stockId,
-                request.getType(),
-                request.getQuantity(),
-                LocalDateTime.now(),
-                request.getReason()
-        );
-        movementRepository.save(movement);
-
-        return stock;
-    }
-
-    // ─── Vérification de disponibilité ─────────────────────────────────────────
-
-    /**
-     * Vérifie si la quantité demandée est disponible pour un produit dans un entrepôt.
-     * Endpoint consommé par l'Order Service lors de la création d'une commande.
-     * (cf. cahier des charges §2.2 — Cas 1 : Création d'une commande)
-     */
-    public StockCheckResponse checkAvailability(Long productId, Long warehouseId, Double requestedQuantity) {
-        Stock stock = stockRepository.findByProductIdAndWarehouseId(productId, warehouseId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Aucun stock trouvé pour ce produit dans cet entrepôt."));
-
-        boolean available = stock.getQuantity() >= requestedQuantity;
-        boolean thresholdAlert = stock.getQuantity() <= stock.getThreshold();
-
-        String message;
-        if (available && !thresholdAlert) {
-            message = "Stock disponible.";
-        } else if (available) {
-            message = "Stock disponible mais en dessous du seuil critique. Réapprovisionnement recommandé.";
-        } else {
-            message = "Stock insuffisant. Déclenchement de la production nécessaire.";
-        }
-
-        return new StockCheckResponse(available, stock.getQuantity(), thresholdAlert, message);
-    }
-
-    // ─── Historique des mouvements ──────────────────────────────────────────────
-
-    public List<StockMovement> getMovements(Long stockId) {
-        // Vérifie que le stock existe
-        getStockById(stockId);
-        return movementRepository.findByStockIdOrderByDateDesc(stockId);
-    }
+    // Méthode privée utilitaire
+    private void saveMovement(Stock stock, String type,
+            int quantity, String reason) {
+StockMovement movement = new StockMovement();
+movement.setProductId(stock.getProductId());
+movement.setStock(stock);          // ✅ lier au stock
+movement.setType(type);
+movement.setQuantity(quantity);
+movement.setReason(reason);
+movementRepository.save(movement);
+}
 }

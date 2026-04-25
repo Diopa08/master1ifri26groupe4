@@ -24,6 +24,13 @@
     <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/spring-webmvc/6.2.17/spring-webmvc-6.2.17.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/spring-context/6.2.17/spring-context-6.2.17.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/spring-expression/6.2.17/spring-expression-6.2.17.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/boot/spring-boot-starter-amqp/3.5.13/spring-boot-starter-amqp-3.5.13.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/spring-messaging/6.2.17/spring-messaging-6.2.17.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/amqp/spring-rabbit/3.2.9/spring-rabbit-3.2.9.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/amqp/spring-amqp/3.2.9/spring-amqp-3.2.9.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/retry/spring-retry/2.0.12/spring-retry-2.0.12.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="VARJAR" id="M2_REPO/com/rabbitmq/amqp-client/5.25.0/amqp-client-5.25.0.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/spring-tx/6.2.17/spring-tx-6.2.17.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/boot/spring-boot-starter-data-jpa/3.5.13/spring-boot-starter-data-jpa-3.5.13.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/boot/spring-boot-starter-jdbc/3.5.13/spring-boot-starter-jdbc-3.5.13.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/com/zaxxer/HikariCP/6.3.3/HikariCP-6.3.3.jar" enabled="true" runInBatchMode="false"/>
@@ -46,7 +53,6 @@
     <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/data/spring-data-jpa/3.5.10/spring-data-jpa-3.5.10.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/data/spring-data-commons/3.5.10/spring-data-commons-3.5.10.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/spring-orm/6.2.17/spring-orm-6.2.17.jar" enabled="true" runInBatchMode="false"/>
-    <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/spring-tx/6.2.17/spring-tx-6.2.17.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/slf4j/slf4j-api/2.0.17/slf4j-api-2.0.17.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/spring-aspects/6.2.17/spring-aspects-6.2.17.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/aspectj/aspectjweaver/1.9.25.1/aspectjweaver-1.9.25.1.jar" enabled="true" runInBatchMode="false"/>

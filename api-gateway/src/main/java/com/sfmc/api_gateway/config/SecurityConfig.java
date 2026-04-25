@@ -8,7 +8,7 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
 @Configuration
-@EnableWebFluxSecurity  // ⚠️ WebFlux — pas @EnableWebSecurity
+@EnableWebFluxSecurity
 public class SecurityConfig {
 
     @Bean
@@ -16,16 +16,13 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeExchange(auth -> auth
-                // Routes publiques
                 .pathMatchers(
                     "/api/auth/login",
                     "/api/auth/register"
                 ).permitAll()
-                // Tout le reste nécessite un JWT valide
                 .anyExchange().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
-                // ✅ Valide le JWT via jwk-set-uri automatiquement
                 .jwt(Customizer.withDefaults())
             );
 
