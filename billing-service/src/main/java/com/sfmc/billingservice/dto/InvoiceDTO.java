@@ -2,6 +2,8 @@ package com.sfmc.billingservice.dto;
 
 import com.sfmc.billingservice.model.InvoiceStatus;
 import com.sfmc.billingservice.model.PaymentMethod;
+import com.sfmc.orderservice.dto.ClientDTO;
+
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,12 +29,7 @@ public class InvoiceDTO {
         private String notes;
 
         // ── Infos client ──
-        private String clientNom;
-        private String clientPrenom;
-        private String clientEmail;
-        private String clientTelephone;
-        private String clientAdresse;
-
+        
         public GenerateInvoiceRequest() {}
 
         public Long getOrderId() { return orderId; }
@@ -50,21 +47,7 @@ public class InvoiceDTO {
         public String getNotes() { return notes; }
         public void setNotes(String notes) { this.notes = notes; }
 
-        public String getClientNom() { return clientNom; }
-        public void setClientNom(String clientNom) { this.clientNom = clientNom; }
-
-        public String getClientPrenom() { return clientPrenom; }
-        public void setClientPrenom(String clientPrenom) { this.clientPrenom = clientPrenom; }
-
-        public String getClientEmail() { return clientEmail; }
-        public void setClientEmail(String clientEmail) { this.clientEmail = clientEmail; }
-
-        public String getClientTelephone() { return clientTelephone; }
-        public void setClientTelephone(String clientTelephone) { this.clientTelephone = clientTelephone; }
-
-        public String getClientAdresse() { return clientAdresse; }
-        public void setClientAdresse(String clientAdresse) { this.clientAdresse = clientAdresse; }
-    }
+   }
 
     // ── Request : enregistrer un paiement ────────────────────────────────────
     public static class RecordPaymentRequest {
@@ -121,13 +104,6 @@ public class InvoiceDTO {
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
 
-        // ── Infos client ──
-        private String clientNom;
-        private String clientPrenom;
-        private String clientEmail;
-        private String clientTelephone;
-        private String clientAdresse;
-
         public InvoiceResponse() {}
 
         public Long getId() { return id; }
@@ -174,20 +150,9 @@ public class InvoiceDTO {
 
         public LocalDateTime getUpdatedAt() { return updatedAt; }
         public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-
-        public String getClientNom() { return clientNom; }
-        public void setClientNom(String clientNom) { this.clientNom = clientNom; }
-
-        public String getClientPrenom() { return clientPrenom; }
-        public void setClientPrenom(String clientPrenom) { this.clientPrenom = clientPrenom; }
-
-        public String getClientEmail() { return clientEmail; }
-        public void setClientEmail(String clientEmail) { this.clientEmail = clientEmail; }
-
-        public String getClientTelephone() { return clientTelephone; }
-        public void setClientTelephone(String clientTelephone) { this.clientTelephone = clientTelephone; }
-
-        public String getClientAdresse() { return clientAdresse; }
-        public void setClientAdresse(String clientAdresse) { this.clientAdresse = clientAdresse; }
+        private ClientDTO client;
+		public ClientDTO getClient() { return client; }
+		public void setClient(ClientDTO client) { this.client = client; }
+       
     }
 }

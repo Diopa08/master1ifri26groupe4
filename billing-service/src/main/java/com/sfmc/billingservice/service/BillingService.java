@@ -10,6 +10,8 @@ import com.sfmc.billingservice.exception.BillingException.InvalidPaymentExceptio
 import com.sfmc.billingservice.model.Invoice;
 import com.sfmc.billingservice.model.InvoiceStatus;
 import com.sfmc.billingservice.repository.InvoiceRepository;
+import com.sfmc.billingservice.dto.ClientDTO;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,9 +31,12 @@ public class BillingService {
     private static final Logger log = LoggerFactory.getLogger(BillingService.class);
 
     private final InvoiceRepository invoiceRepository;
+    private final AuthServiceClient authServiceClient;
 
-    public BillingService(InvoiceRepository invoiceRepository) {
+    public BillingService(InvoiceRepository invoiceRepository ,AuthServiceClient authServiceClient) {
         this.invoiceRepository = invoiceRepository;
+    	this.authServiceClient = authServiceClient;
+
     }
 
     // ── 1. Générer une facture ────────────────────────────────────────────────
@@ -54,11 +59,7 @@ public class BillingService {
         invoice.setNotes(request.getNotes());
 
         // ── Infos client sauvegardées directement ──
-        invoice.setClientNom(request.getClientNom());
-        invoice.setClientPrenom(request.getClientPrenom());
-        invoice.setClientEmail(request.getClientEmail());
-        invoice.setClientTelephone(request.getClientTelephone());
-        invoice.setClientAdresse(request.getClientAdresse());
+      
 
         Invoice saved = invoiceRepository.save(invoice);
         log.info("Facture {} générée avec succès (montant: {} FCFA)", invoiceNumber, saved.getTotalAmount());
@@ -209,12 +210,11 @@ public class BillingService {
         response.setCreatedAt(invoice.getCreatedAt());
         response.setUpdatedAt(invoice.getUpdatedAt());
 
-        // ── Infos client ──
-        response.setClientNom(invoice.getClientNom());
-        response.setClientPrenom(invoice.getClientPrenom());
-        response.setClientEmail(invoice.getClientEmail());
-        response.setClientTelephone(invoice.getClientTelephone());
-        response.setClientAdresse(invoice.getClientAdresse());
+        // ── Infos cent ──
+        
+        ClientDTO client = authServiceClient.getClientById(invoice.getClientId());
+        log.info("CLIENT RECUPERE = {}", client);
+        
 
         return response;
     }

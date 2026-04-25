@@ -187,6 +187,7 @@ public class OrderService {
         r.setId(order.getId());
         r.setOrderNumber(order.getOrderNumber());
         r.setClientId(order.getClientId());
+        
         ClientDTO client = authServiceClient.getClientById(order.getClientId());
         log.info("CLIENT RECUPERE = {}", client);
         
